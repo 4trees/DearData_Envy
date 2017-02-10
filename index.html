@@ -17,11 +17,36 @@
 path, line{
   stroke-linecap: round;
 }
+.curanimation{
+  animation:roll 3s ease-in-out infinite;
+  /*transform: rotate(30deg);*/
+}
+@keyframes roll {
+  0% {
+    transform: rotate(0);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+.stripanimation{
+  animation: shake 2s infinite;
+  animation-direction: alternate;
+}
+@keyframes shake {
+  0% {
+    transform: skewY(10deg);
+  }
+  100% {
+    transform: skewY(-10deg);
+  }
+}
+
+
 </style>
 <script>
 //prepare canvas
 var canvas = document.getElementById('canvas');
-// var ctx = canvas.getContext('2d');
 var xmlns='http://www.w3.org/2000/svg';
 var plot=document.createElementNS(xmlns,'svg');
 var w=canvas.clientWidth, h=canvas.clientHeight;
@@ -29,8 +54,7 @@ plot.id='svg';
 plot.setAttribute('xmlns',xmlns);
 plot.setAttribute('width',w);
 plot.setAttribute('height',h);
-// plot.style.transform='translate(50,50)';
-// console.log(plot.style.transform)
+
 document.getElementById('canvas').appendChild(plot);
 console.log(canvas.clientWidth,canvas.clientHeight,plot.width,plot.height)
 
@@ -44,59 +68,46 @@ for(var n=0;n<level*60;n++){
   arcs.push(arc)
 }
 var d='M '+startpointX+' '+startpointY+' '.concat(...arcs);
-return svgPathNode(d,2,color);;
+return cur(d,2,color);;
 }
 
 
-function svgPathNode(d, strokeWidth, strokeColor) {
-var svgNode = document.createElementNS(xmlns,'path');
-  svgNode.setAttribute("d", d);
-  svgNode.setAttribute('stroke',strokeColor);
-  svgNode.setAttribute('stroke-width',strokeWidth+'px')
-  // svgNode.style.stroke = strokeColor;
-  // svgNode.style.strokeWidth = strokeWidth;
-  svgNode.style.fill='transparent';
-  return svgNode;
-
+function cur(d, strokeWidth, strokeColor) {
+var cur = document.createElementNS(xmlns,'path');
+  cur.setAttribute("d", d);
+  cur.setAttribute('stroke',strokeColor);
+  cur.setAttribute('stroke-width',strokeWidth+'px')
+  cur.style.fill='transparent';
+  return cur;
 }
-function strip(startpointX,startpointY,color,level){
+
+function strip(x1,x2,y1,y2,color,width,name){
    const strip=document.createElementNS(xmlns,'line');
-    strip.setAttribute('x1',(startpointX-level*5))
-    strip.setAttribute('y1',(startpointY-level*5))
-    strip.setAttribute('x2',(startpointX-level*5-4))
-    strip.setAttribute('y2',(startpointY-level*5-4))
-    strip.style.strokeWidth=4;
+    strip.style.transition='transform 2s'
+    strip.setAttribute('x1',x1)
+    strip.setAttribute('y1',y1)
+    strip.setAttribute('x2',x2)
+    strip.setAttribute('y2',y2)
+    strip.setAttribute('data-name',name)
+    strip.style.strokeWidth=width;
     strip.style.stroke=color;
 return strip
 }
-
 
 var alldata={};
 function dataloaded(data,name){
   alldata[name]=data;//store data to object and use them by property name.
 
   howoftenkey.forEach((el,i)=>{
-    var line=document.createElementNS(xmlns,'line');
-    const portion=(w-60)/4.25;
-    line.setAttribute('x1',i*portion+20);
-    line.setAttribute('y1',h-10);
-    line.setAttribute('x2',(i+el.portion)*portion);
-    line.setAttribute('y2',h-10);
-    line.style.strokeWidth=10;
-    line.style.stroke=el.color;
-    document.getElementById('svg').appendChild(line);
+    const portion=(w-60)/4.25;   
+    document.getElementById('svg').appendChild(strip(i*portion+20,(i+el.portion)*portion,h-10,h-10,el.color,10,'often'));
   })
   reachablekey.forEach((el,i)=>{
-    var line=document.createElementNS(xmlns,'line');
-    const portion=(h-40)/3.5;
-    line.setAttribute('y1',i*portion+20);
-    line.setAttribute('x1',20);
-    line.setAttribute('y2',(i+el.portion)*portion);
-    line.setAttribute('x2',20);
-    line.style.strokeWidth=10;
-    line.style.stroke=el.color;
-    document.getElementById('svg').appendChild(line);
+    const portion=(h-40)/3.5;   
+    document.getElementById('svg').appendChild(strip(20,20,i*portion+20,(i+el.portion)*portion,el.color,10,'reachable'));
   })
+ 
+  
   alldata.main.forEach((data,i)=>{
     var curcolor=typekey.find(el=>el.id==data.type).color;
     var pointcolor=whomkey.find(el=>el.id==data.whom).color;
@@ -104,28 +115,66 @@ function dataloaded(data,name){
     var level=data.level;
     var oftenlevel=data.oftenlevel;
     var reachlevel=data.reachlevel;
-    var x=Math.round((data.howoften-1+oftenlevel*.1)/4.5*w+20);
-    var y=Math.round(h-((data.reachable-1+reachlevel*.1)/3.5)*h)+60;
-    var g=document.createElementNS(xmlns,'g');
+    const x=Math.round((data.howoften-1+oftenlevel*.1)/4.5*w+20);
+    const y=Math.round(h-((data.reachable-1+reachlevel*.1)/3.5)*h)+60;
+    const g=document.createElementNS(xmlns,'g');
 
+    g.style.transform=`translate(${x}px,${y}px)`;
 
-    var point=document.createElementNS(xmlns,'circle');
-    point.setAttribute('cx',x);
-    point.setAttribute('cy',y);
+    const point=document.createElementNS(xmlns,'circle');
+    point.setAttribute('cx',0);
+    point.setAttribute('cy',0);
     point.setAttribute('r',3);
     point.style.fill=pointcolor;
     g.appendChild(point); 
 
     for (var i=0;i<3;i++){
-      g.appendChild(strip(x+i*5,y-i*5,stripcolor,level))
+      var offset;
+      if(data.type==3&&data.learned==5){
+        offset=level*5+2;
+      }else{
+        offset=-level*5;
+      }
+      g.appendChild(strip(i*5+offset,i*5+offset-4,-i*5+offset,-i*5+offset-4,stripcolor,4,'strip'))
     }      
-    g.insertBefore(drawcur(x,y,level,curcolor),g.firstChild);
+    g.insertBefore(drawcur(0,0,level,curcolor),g.firstChild);
     document.getElementById('svg').appendChild(g);
 
   })
-   
+animation() 
+
 }
 
+const svg=document.querySelector('svg')
+
+svg.addEventListener('mousemove',animationout)
+svg.addEventListener('mouseout',animation)
+
+
+//animation
+function animation(){
+  const strips=document.querySelectorAll('[data-name=strip]')
+  const paths=document.querySelectorAll('path')
+  paths.forEach(path=>{
+    path.classList.add('curanimation')
+  })
+  strips.forEach(strip=>{
+    strip.classList.add('stripanimation')
+  })
+}
+function animationout(){
+  const strips=document.querySelectorAll('[data-name=strip]')
+  const paths=document.querySelectorAll('path')
+  paths.forEach(path=>{
+    path.classList.remove('curanimation')
+  })
+  strips.forEach(strip=>{
+    strip.classList.remove('stripanimation')
+  })
+}
+function start(element,x,y){
+  element.style.transform=`translate(${x}px,${y}px)`
+}
 //get the data
 const files=[{file:'envy.csv',parse:'maindata',name:'main'}];
 function call_user_func(method, params){
@@ -145,7 +194,7 @@ fetch(filepath).then(response=>response.text())//get the whole content of file a
     var row = allTextLines[i].split(',');//break each rows to array
     data.push(call_user_func(parsemethod,[row]))   
     };  
-    console.table(data)
+    // console.table(data)
   dataloaded(data,name);//data-store function
 })
 })
