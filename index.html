@@ -2,20 +2,53 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Week33 Envy</title>
+  <title>Week33 Envious!</title>
 </head>
 <body>
   <div class="container">
-     <div id='canvas'></div>
+    <div class="title">
+      <h2>Week33 Envious! <span class="small"> Design from Giorgia, digitized by Liuhuaying</span></h2>
+      <p class="des">I envied <span id="whom">someone</span> for <span id="why">a reason</span> and learned that <span id="learned">..</span>.</p>
+    </div>
+    <div id='canvas'></div>
   </div>
 <style>
+html{
+  font-family: 'Avenu',Helvetica;
+  color: #333;
+  background-color: #f8f4eb;
+}
+html,body{
+  height: 100%;
+  margin: 0;
+}
 .container{
   width: 100%;
   margin: 0 auto;
+  height: 100%;
 }
-#canvas{width: 100%;min-height:600px}
+#canvas{
+  width: 100%;
+  height: 80%;
+  margin: 0;
+}
+.title{
+  height: 15%;
+  width: 100%;
+  padding-left: 2em;
+}
+.small{
+  font-size: 50%;
+  font-weight: 200;
+}
+.des{
+  color: #666;
+}
 path, line{
   stroke-linecap: round;
+}
+text{
+  transition: all 1s;
 }
 .curanimation{
   animation:roll 3s ease-in-out infinite;
@@ -41,12 +74,15 @@ path, line{
     transform: skewY(-10deg);
   }
 }
-
+.opacity{
+  opacity: 0;
+}
 
 </style>
 <script>
 //prepare canvas
 var canvas = document.getElementById('canvas');
+
 var xmlns='http://www.w3.org/2000/svg';
 var plot=document.createElementNS(xmlns,'svg');
 var w=canvas.clientWidth, h=canvas.clientHeight;
@@ -54,6 +90,7 @@ plot.id='svg';
 plot.setAttribute('xmlns',xmlns);
 plot.setAttribute('width',w);
 plot.setAttribute('height',h);
+plot.style.transform="translateX(20px)";
 
 document.getElementById('canvas').appendChild(plot);
 console.log(canvas.clientWidth,canvas.clientHeight,plot.width,plot.height)
@@ -93,18 +130,40 @@ function strip(x1,x2,y1,y2,color,width,name){
     strip.style.stroke=color;
 return strip
 }
+function texttag(content,x,y,color,size,transform){
+    const text=document.createElementNS(xmlns,'text');
+    text.innerHTML=content;
+    text.setAttribute('x',x)
+    text.setAttribute('y',y)
+    text.style.fill=color;
+    text.style.fontSize=size;   
+    text.setAttribute('transform',transform);
+    text.style.textAnchor="middle";
+return text
+}
 
 var alldata={};
 function dataloaded(data,name){
   alldata[name]=data;//store data to object and use them by property name.
+  const axisX=document.createElementNS(xmlns,'g'); 
+  axisX.id='axisX'; 
+  document.getElementById('svg').appendChild(axisX);
+  const axisY=document.createElementNS(xmlns,'g'); 
+  axisY.id='axisY'; 
+  document.getElementById('svg').appendChild(axisY);
+
 
   howoftenkey.forEach((el,i)=>{
-    const portion=(w-60)/4.25;   
-    document.getElementById('svg').appendChild(strip(i*portion+20,(i+el.portion)*portion,h-10,h-10,el.color,10,'often'));
+    const portion=(w-60)/4.25; 
+    document.getElementById('axisX').appendChild(strip(i*portion+20,(i+el.portion)*portion,h-15,h-15,el.color,10,'often'));
+    document.getElementById('axisX').appendChild(texttag(el.often,(i+el.portion/2)*portion+12,h-15+12,'#666','.5em',''))
+
   })
+
   reachablekey.forEach((el,i)=>{
-    const portion=(h-40)/3.5;   
-    document.getElementById('svg').appendChild(strip(20,20,i*portion+20,(i+el.portion)*portion,el.color,10,'reachable'));
+    const portion=(h-40)/3.5;
+    document.getElementById('axisY').appendChild(strip(20,20,i*portion+20,(i+el.portion)*portion,el.color,10,'reachable'));
+    document.getElementById('axisY').appendChild(texttag(el.reachable,20+10,(i+el.portion/2)*portion+12,'#666','.5em','rotate(90 '+20+' '+(i+el.portion/2)*portion+')'))
   })
  
   
@@ -136,45 +195,64 @@ function dataloaded(data,name){
         offset=-level*5;
       }
       g.appendChild(strip(i*5+offset,i*5+offset-4,-i*5+offset,-i*5+offset-4,stripcolor,4,'strip'))
-    }      
-    g.insertBefore(drawcur(0,0,level,curcolor),g.firstChild);
-    document.getElementById('svg').appendChild(g);
+    }  
+    const cur= drawcur(0,0,level,curcolor); 
+    const whomct=document.querySelector('#whom');
+    const whyct=document.querySelector('#why');
+    const learnedct=document.querySelector('#learned');
+    cur.addEventListener('click',()=>{
+      whomct.innerHTML=whomkey.find(el=>el.id==data.whom).whom;
+      whomct.style.color=pointcolor;
+      whyct.innerHTML=typekey.find(el=>el.id==data.type).type;
+      whyct.style.color=curcolor;
+      learnedct.innerHTML=learnedkey.find(el=>el.id==data.learned).learned;
+      learnedct.style.color=stripcolor;
+    });  
 
+    g.insertBefore(cur,g.firstChild);
+    document.getElementById('svg').appendChild(g);
   })
+
 animation() 
 
 }
 
 const svg=document.querySelector('svg')
 
-svg.addEventListener('mousemove',animationout)
-svg.addEventListener('mouseout',animation)
+svg.addEventListener('mouseenter',animationout)
+svg.addEventListener('mouseleave',animation)
 
 
 //animation
 function animation(){
   const strips=document.querySelectorAll('[data-name=strip]')
   const paths=document.querySelectorAll('path')
+  const texts=document.querySelectorAll('text')
   paths.forEach(path=>{
     path.classList.add('curanimation')
   })
   strips.forEach(strip=>{
     strip.classList.add('stripanimation')
   })
+  texts.forEach(text=>{
+    text.classList.add('opacity')
+  })
 }
 function animationout(){
   const strips=document.querySelectorAll('[data-name=strip]')
   const paths=document.querySelectorAll('path')
+  const texts=document.querySelectorAll('text')
   paths.forEach(path=>{
     path.classList.remove('curanimation')
   })
   strips.forEach(strip=>{
     strip.classList.remove('stripanimation')
   })
+  texts.forEach(text=>{
+    text.classList.remove('opacity')
+  })
 }
-function start(element,x,y){
-  element.style.transform=`translate(${x}px,${y}px)`
-}
+
 //get the data
 const files=[{file:'envy.csv',parse:'maindata',name:'main'}];
 function call_user_func(method, params){
@@ -249,7 +327,7 @@ const typekey=[
     {id:5,type:'being able to take things easier',color:'#becde6'},
     {id:6,type:'being less control freak',color:'#5c608e'},
     {id:7,type:'be healthier(exeracel eat week)',color:'#999'},
-    {id:8,type:'English!! Mastering the languages/ accent',color:'#eb4da2'},
+    {id:8,type:'English!! Mastering the languages/accent',color:'#eb4da2'},
     {id:9,type:'How I look/dress/elegance',color:'#9e7cc8'},
     {id:10,type:'CHARM!',color:'#333'}
 ]
